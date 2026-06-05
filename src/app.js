@@ -5,7 +5,6 @@ const rateLimit = require('express-rate-limit');
 const morgan = require('morgan');
 const cookieParser = require('cookie-parser');
 const { CLIENT_ORIGIN, RATE_LIMIT_WINDOW_MS, RATE_LIMIT_MAX, NODE_ENV } = require('./config');
-const authRoutes = require('./routes/auth');
 const paymentRoutes = require('./routes/payments');
 const walletRoutes = require('./routes/wallet');
 const adminRoutes = require('./routes/admin');
@@ -33,7 +32,6 @@ app.get('/api/health', (req, res) => {
   res.json({ success: true, status: 'ok', environment: NODE_ENV });
 });
 
-app.use('/api/auth', authRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/wallet', walletRoutes);
 app.use('/api/admin', adminRoutes);

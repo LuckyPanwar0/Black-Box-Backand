@@ -1,10 +1,7 @@
 const express = require('express');
 const db = require('../db');
-const { authenticate, authorize } = require('../middleware/auth');
 
 const router = express.Router();
-
-router.use(authenticate, authorize('super_admin'));
 
 router.get('/summary', (req, res) => {
   const totalUsers = db.prepare('SELECT COUNT(*) as count FROM users').get().count;

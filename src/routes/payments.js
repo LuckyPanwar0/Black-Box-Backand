@@ -3,14 +3,12 @@ const crypto = require('crypto');
 const axios = require('axios');
 const { body, validationResult } = require('express-validator');
 const db = require('../db');
-const { authenticate } = require('../middleware/auth');
 const { PAYMENT_GATEWAY_TOKEN, PAYMENT_GATEWAY_URL, REDIRECT_URL, WEBHOOK_SECRET } = require('../config');
 
 const router = express.Router();
 
 router.post(
   '/create',
-  authenticate,
   [
     body('amount').isFloat({ gt: 0 }).withMessage('Amount must be greater than zero'),
     body('order_id').trim().notEmpty().withMessage('Order ID is required'),
@@ -29,7 +27,7 @@ router.post(
     const order = db.prepare(`
       INSERT INTO payments (order_id, user_id, amount, reference, metadata)
       VALUES (?, ?, ?, ?, ?)
-    `).run(order_id, req.user.id, parseFloat(amount), `order-${order_id}`, remark || 'Payment');
+    `).run(order_id, 1, parseFloat(amount), `order-${order_id}`, remark || 'Payment');
 
     const payment = db.prepare('SELECT * FROM payments WHERE id = ?').get(order.lastInsertRowid);
 
@@ -38,7 +36,7 @@ router.post(
       payload.append('user_token', PAYMENT_GATEWAY_TOKEN);
       payload.append('amount', amount);
       payload.append('order_id', order_id);
-      payload.append('customer_mobile', req.user.mobile || '0000000000');
+      payload.append('customer_mobile', '0000000000');
       payload.append('redirect_url', `${REDIRECT_URL}/payment-result?status=success&order_id=${order_id}`);
       payload.append('remark1', 'system@blackbuck');
       payload.append('remark2', remark || 'BlackBuck payment');
@@ -65,7 +63,6 @@ router.post(
 
 router.post(
   '/verify',
-  authenticate,
   [
     body('order_id').trim().notEmpty().withMessage('Order ID is required'),
     body('status').trim().isIn(['success', 'failed']).withMessage('Status must be success or failed'),
@@ -76,7 +73,7 @@ router.post(
     if (!errors.isEmpty()) return res.status(400).json({ success: false, errors: errors.array() });
     const { order_id, status, transaction_id } = req.body;
 
-    const payment = db.prepare('SELECT * FROM payments WHERE order_id = ? AND user_id = ?').get(order_id, req.user.id);
+    const payment = db.prepare('SELECT * FROM payments WHERE order_id = ? AND user_id = ?').get(order_id, 1);
     if (!payment) {
       return res.status(404).json({ success: false, message: 'Payment order not found' });
     }
@@ -93,13 +90,13 @@ router.post(
   }
 );
 
-router.get('/', authenticate, (req, res) => {
-  const payments = db.prepare('SELECT * FROM payments WHERE user_id = ? ORDER BY created_at DESC').all(req.user.id);
+router.get('/', (req, res) => {
+  const payments = db.prepare('SELECT * FROM payments WHERE user_id = ? ORDER BY created_at DESC').all(1);
   res.json({ success: true, payments });
 });
 
-router.get('/:order_id', authenticate, (req, res) => {
-  const payment = db.prepare('SELECT * FROM payments WHERE order_id = ? AND user_id = ?').get(req.params.order_id, req.user.id);
+router.get('/:order_id', (req, res) => {
+  const payment = db.prepare('SELECT * FROM payments WHERE order_id = ? AND user_id = ?').get(req.params.order_id, 1);
   if (!payment) return res.status(404).json({ success: false, message: 'Payment not found' });
   res.json({ success: true, payment });
 });
