@@ -35,8 +35,8 @@ router.post(
     db.prepare('UPDATE users SET wallet_balance = wallet_balance + ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
       .run(amount, req.user.id);
 
-    const wallet = db.prepare('SELECT wallet_balance FROM users WHERE id = ?').get(req.user.id);
-    res.json({ success: true, wallet });
+    const walletRecord = db.prepare('SELECT wallet_balance FROM users WHERE id = ?').get(req.user.id);
+    res.json({ success: true, wallet: { balance: walletRecord.wallet_balance } });
   }
 );
 
